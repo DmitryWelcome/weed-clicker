@@ -1,36 +1,124 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌿 Weed Counter
 
-## Getting Started
+Красивое приложение для отслеживания употребления марихуаны, построенное на Next.js с Neon PostgreSQL базой данных.
 
-First, run the development server:
+## 🚀 Возможности
+
+- ✅ Добавление сессий с указанием количества и типа
+- ✅ Статистика: общий вес, количество сессий, среднее за сессию
+- ✅ Красивые анимации с Framer Motion
+- ✅ Сохранение данных в Neon PostgreSQL
+- ✅ Адаптивный дизайн
+- ✅ Отладочная страница для просмотра данных
+
+## 🛠️ Технологии
+
+- **Frontend**: Next.js 15, React 18, TypeScript
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion
+- **Database**: Neon PostgreSQL
+- **Deployment**: Vercel
+
+## 📦 Установка
+
+1. Клонируйте репозиторий:
+
+```bash
+git clone <your-repo-url>
+cd weedcliker
+```
+
+2. Установите зависимости:
+
+```bash
+npm install
+```
+
+3. Настройте базу данных Neon:
+
+   - Создайте аккаунт на [neon.tech](https://neon.tech)
+   - Создайте новый проект
+   - Скопируйте строку подключения
+
+4. Создайте файл `.env.local`:
+
+```env
+DATABASE_URL="postgresql://username:password@host:port/database?sslmode=require"
+```
+
+5. Инициализируйте базу данных:
+
+```bash
+# Выполните SQL из src/lib/schema.sql в вашей Neon базе данных
+```
+
+6. Запустите приложение:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🗄️ Структура базы данных
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```sql
+CREATE TABLE sessions (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL,
+  date VARCHAR(50) NOT NULL,
+  time VARCHAR(50) NOT NULL,
+  amount DECIMAL(5,2) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 Деплой на Vercel
 
-## Learn More
+1. Подключите репозиторий к Vercel
+2. Добавьте переменную окружения `DATABASE_URL` в настройках проекта
+3. Деплой произойдет автоматически
 
-To learn more about Next.js, take a look at the following resources:
+## 📱 Использование
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Добавление сессии**: Нажмите "Добавить сессию" и заполните форму
+- **Просмотр статистики**: Статистика отображается в верхней части
+- **Удаление сессии**: Нажмите на корзину рядом с сессией
+- **Отладка**: Перейдите на `/debug` для просмотра данных браузера
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🔧 API Endpoints
 
-## Deploy on Vercel
+- `GET /api/sessions?userId=default_user` - получить все сессии
+- `POST /api/sessions` - создать новую сессию
+- `DELETE /api/sessions/[id]?userId=default_user` - удалить сессию
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎨 Особенности дизайна
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Градиентный фон в зеленых тонах
+- Полупрозрачные карточки с эффектом размытия
+- Плавные анимации появления элементов
+- Эмодзи для типов сессий
+- Адаптивная сетка для мобильных устройств
+
+## 📊 Типы сессий
+
+- 🚬 Косяк (joint)
+- 💨 Бонг (bong)
+- 🫖 Трубка (pipe)
+- 🍪 Еда (edible)
+
+## 🔒 Безопасность
+
+- Все запросы к базе данных защищены от SQL-инъекций
+- Используется параметризованные запросы
+- Проверка прав доступа по user_id
+
+## 🚀 Производительность
+
+- Server-side rendering с Next.js
+- Оптимизированные изображения
+- Ленивая загрузка компонентов
+- Кэширование запросов к API
+
+## 📝 Лицензия
+
+MIT License

@@ -7,8 +7,11 @@ export default function DebugPage() {
   const [sessionStorageData, setSessionStorageData] = useState<string>('');
 
   useEffect(() => {
+    // Проверяем, что мы в браузере
+    if (typeof window === 'undefined') return;
+
     // Получаем все данные из localStorage
-    const allData: Record<string, any> = {};
+    const allData: Record<string, unknown> = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key) {
@@ -23,7 +26,7 @@ export default function DebugPage() {
     setLocalStorageData(JSON.stringify(allData, null, 2));
     
     // Получаем все данные из sessionStorage
-    const allSessionData: Record<string, any> = {};
+    const allSessionData: Record<string, unknown> = {};
     for (let i = 0; i < sessionStorage.length; i++) {
       const key = sessionStorage.key(i);
       if (key) {
@@ -39,6 +42,7 @@ export default function DebugPage() {
   }, []);
 
   const clearAllData = () => {
+    if (typeof window === 'undefined') return;
     localStorage.clear();
     sessionStorage.clear();
     setLocalStorageData('');
@@ -46,13 +50,26 @@ export default function DebugPage() {
   };
 
   const clearWeedData = () => {
+    if (typeof window === 'undefined') return;
     localStorage.removeItem('weedSessions');
     setLocalStorageData(prev => {
-      const data = JSON.parse(prev || '{}');
+      const data = JSON.parse(prev || '{}') as Record<string, unknown>;
       delete data.weedSessions;
       return JSON.stringify(data, null, 2);
     });
   };
+
+  // Проверяем, что мы в браузере
+  if (typeof window === 'undefined') {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-8">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8">🔍 Debug - Просмотр данных браузера</h1>
+          <p>Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">

@@ -1,40 +1,49 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
 
 interface Session {
-  id: string;
+  id: number;
+  user_id: string;
   date: string;
   time: string;
   amount: number;
   type: string;
+  created_at: string;
 }
 
 export default function WeedCounter() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newSession, setNewSession] = useState({
     amount: 0.1,
     type: 'joint',
   });
 
-  // Загрузка данных из localStorage при монтировании
-  useEffect(() => {
-    const savedSessions = localStorage.getItem('weedSessions');
-    if (savedSessions) {
-      const parsed = JSON.parse(savedSessions);
-      setSessions(parsed);
-      calculateTotal(parsed);
+  const fetchSessions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/sessions?userId=default_user');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+      const data = await response.json();
+      setSessions(data);
+      calculateTotal(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch sessions');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Сохранение в localStorage при изменении
+  // Загрузка данных из базы данных
   useEffect(() => {
-    localStorage.setItem('weedSessions', JSON.stringify(sessions));
-    calculateTotal(sessions);
-  }, [sessions]);
+    fetchSessions();
+  }, [fetchSessions]);
 
   const calculateTotal = (sessionsList: Session[]) => {
     const total = sessionsList.reduce(
@@ -44,23 +53,52 @@ export default function WeedCounter() {
     setTotalAmount(total);
   };
 
-  const addSession = () => {
-    const now = new Date();
-    const session: Session = {
-      id: Date.now().toString(),
-      date: now.toLocaleDateString('ru-RU'),
-      time: now.toLocaleTimeString('ru-RU'),
-      amount: newSession.amount,
-      type: newSession.type,
-    };
+  const addSession = async () => {
+    try {
+      const now = new Date();
+      const sessionData = {
+        userId: 'default_user',
+        date: now.toLocaleDateString('ru-RU'),
+        time: now.toLocaleTimeString('ru-RU'),
+        amount: newSession.amount,
+        type: newSession.type,
+      };
 
-    setSessions((prev) => [session, ...prev]);
-    setNewSession({ amount: 0.1, type: 'joint' });
-    setShowAddForm(false);
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sessionData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create session');
+      }
+
+      const newSessionData = await response.json();
+      setSessions((prev) => [newSessionData, ...prev]);
+      setNewSession({ amount: 0.1, type: 'joint' });
+      setShowAddForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create session');
+    }
   };
 
-  const deleteSession = (id: string) => {
-    setSessions((prev) => prev.filter((session) => session.id !== id));
+  const deleteSession = async (id: number) => {
+    try {
+      const response = await fetch(`/api/sessions/${id}?userId=default_user`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete session');
+      }
+
+      setSessions((prev) => prev.filter((session) => session.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete session');
+    }
   };
 
   const getTypeIcon = (type: string) => {
@@ -93,25 +131,44 @@ export default function WeedCounter() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-700 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🌿</div>
+          <p className="text-xl">Загрузка данных...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-700 text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Заголовок */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
+        <div className="text-center mb-8">
           <h1 className="text-5xl font-bold mb-4">🌿 Weed Counter</h1>
           <p className="text-xl text-green-200">Отслеживай свои сессии</p>
-        </motion.div>
+          <p className="text-sm text-green-300 mt-2">
+            Данные сохраняются в Neon PostgreSQL
+          </p>
+        </div>
+
+        {/* Ошибка */}
+        {error && (
+          <div className="bg-red-800/50 backdrop-blur-sm rounded-2xl p-4 mb-8 border border-red-600/30">
+            <p className="text-red-200">Ошибка: {error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-300 hover:text-red-100 mt-2"
+            >
+              ✕ Закрыть
+            </button>
+          </div>
+        )}
 
         {/* Статистика */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-green-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-green-600/30"
-        >
+        <div className="bg-green-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-green-600/30">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-green-300">
@@ -135,29 +192,21 @@ export default function WeedCounter() {
               <div className="text-green-200">Среднее за сессию</div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Кнопка добавления */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center mb-8"
-        >
+        <div className="text-center mb-8">
           <button
             onClick={() => setShowAddForm(true)}
             className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
             ➕ Добавить сессию
           </button>
-        </motion.div>
+        </div>
 
         {/* Форма добавления */}
         {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-green-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-green-600/30"
-          >
+          <div className="bg-green-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-green-600/30">
             <h3 className="text-2xl font-bold mb-4 text-center">
               Новая сессия
             </h3>
@@ -210,15 +259,11 @@ export default function WeedCounter() {
                 ❌ Отмена
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Список сессий */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-4"
-        >
+        <div className="space-y-4">
           {sessions.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🌿</div>
@@ -227,12 +272,9 @@ export default function WeedCounter() {
               </p>
             </div>
           ) : (
-            sessions.map((session, index) => (
-              <motion.div
+            sessions.map((session) => (
+              <div
                 key={session.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
                 className="bg-green-800/30 backdrop-blur-sm rounded-xl p-4 border border-green-600/20 hover:border-green-500/40 transition-all duration-300"
               >
                 <div className="flex items-center justify-between">
@@ -261,10 +303,10 @@ export default function WeedCounter() {
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))
           )}
-        </motion.div>
+        </div>
       </div>
     </div>
   );
